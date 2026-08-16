@@ -65,6 +65,11 @@ var scanCmd = &cobra.Command{
 				return err
 			}
 
+			Name := d.Name()
+			if Name == ".git" {
+				return fs.SkipDir
+			}
+
 			if d.IsDir() {
 				dirNum++
 			} else {
