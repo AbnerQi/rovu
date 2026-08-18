@@ -11,40 +11,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func fileSizeJugde(size int64) string {
-	const (
-		KB = 1024
-		MB = 1024 * KB
-		GB = 1024 * MB
-	)
-
-	switch {
-	case size < KB:
-		return fmt.Sprintf("%d bytes", size)
-	case size < MB:
-		return fmt.Sprintf("%.2f KB", float64(size)/KB)
-	case size < GB:
-		return fmt.Sprintf("%.2f MB", float64(size)/MB)
-	default:
-		return fmt.Sprintf("%.2f GB", float64(size)/GB)
-	}
-}
-
 var scanCmd = &cobra.Command{
 	Use: "scan",
 
 	Short: "Scan a directory and report file, directory, and size statistics",
 
 	Long: `Scan recursively walks a directory tree and reports the number
-	of files, directories, and total size, skipping version control
-	directories like .git.
+of files, directories, and total size, skipping version control
+directories like .git.
 
-	If no path is given, the current directory is scanned.
+If no path is given, the current directory is scanned.
 
-	Examples:
+Examples:
 
-	rovu scan .
-	rovu scan D:\project\rovu`,
+  rovu scan .
+  rovu scan D:\project\rovu`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
@@ -65,8 +46,8 @@ var scanCmd = &cobra.Command{
 				return err
 			}
 
-			Name := d.Name()
-			if Name == ".git" {
+			name := d.Name()
+			if name == ".git" {
 				return fs.SkipDir
 			}
 
@@ -93,7 +74,7 @@ var scanCmd = &cobra.Command{
 
 		fmt.Printf("%-12s %d\n", "Files:", fileNum)
 		fmt.Printf("%-12s %d\n", "Directories:", dirNum)
-		fmt.Printf("%-12s %s\n", "Size:", fileSizeJugde(sizeAll))
+		fmt.Printf("%-12s %s\n", "Size:", fileSizeJudge(sizeAll))
 
 		return nil
 	},
