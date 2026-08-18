@@ -79,4 +79,4 @@ Markdown             │ 2          │  25.000% █████
 
 ## License
 
-To be determined.
+[MIT](LICENSE)
