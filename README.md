@@ -72,11 +72,10 @@ Size:        19.80 KB
 $ rovu scan . --top 5
 
 The top 5 largest files:
-1. 计划.md       6.56 KB
-2. cmd\scan.go   3.90 KB
-3. cmd\public.go 2.07 KB
-4. README.md     2.05 KB
-5. cmd\stats.go  2.01 KB
+1. cmd\scan.go   3.90 KB
+2. cmd\public.go 2.07 KB
+3. README.md     2.05 KB
+4. cmd\stats.go  2.01 KB
 
 $ rovu stats .
 
