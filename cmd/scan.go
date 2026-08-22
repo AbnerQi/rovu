@@ -216,7 +216,7 @@ Examples:
 }
 
 func init() {
-	rootCmd.AddCommand(scanCmd)
+	RovuCmd.AddCommand(scanCmd)
 	scanCmd.Flags().StringSliceVarP(&scanExtFilter, "ext", "e", nil, "Filter by file extension")
 	scanCmd.Flags().Int64VarP(&scanTopSize, "top", "t", 0, "Search for the top N largest files")
 }

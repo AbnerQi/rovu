@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
+var RovuCmd = &cobra.Command{
 	Use: "rovu",
 
 	Short: "A fast local repository analysis CLI",
@@ -22,7 +22,7 @@ Examples:
 }
 
 func Execute() {
-	err := rootCmd.Execute()
+	err := RovuCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}

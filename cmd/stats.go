@@ -100,5 +100,5 @@ Examples:
 }
 
 func init() {
-	rootCmd.AddCommand(statsCmd)
+	RovuCmd.AddCommand(statsCmd)
 }
