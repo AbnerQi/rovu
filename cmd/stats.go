@@ -28,8 +28,7 @@ If no path is given, the current directory is scanned.
 Examples:
 
   rovu stats .
-  rovu stats D:\project\bot
-  rovu stats . --top 10`,
+  rovu stats D:\project\bot`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nowPath := "."
 

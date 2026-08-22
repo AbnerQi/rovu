@@ -72,11 +72,19 @@ func scanfile_ext(args []string) error {
 	var mpExt = make(map[string]int)
 
 	for _, ext := range scanExtFilter {
+		if ext == "" {
+			continue
+		}
+
 		if ext[0] != '.' {
 			ext = "." + ext
 		}
 
 		mpExt[ext] = 0
+	}
+
+	if len(mpExt) == 0 {
+		return fmt.Errorf("no valid extension provided to --ext")
 	}
 
 	nowPath := "."
@@ -155,11 +163,11 @@ func scanfile_top(args []string) error {
 		return nil
 	})
 
-	scanTopSize = min(scanTopSize, int64(len(fileSlice)))
-
 	if err != nil {
 		return err
 	}
+
+	scanTopSize = min(scanTopSize, int64(len(fileSlice)))
 
 	sort.Slice(fileSlice, func(i, j int) bool {
 		if mpSize[fileSlice[i]] != mpSize[fileSlice[j]] {
@@ -205,11 +213,17 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(scanExtFilter) != 0 {
 			return scanfile_ext(args)
-		} else if scanTopSize != 0 {
-			return scanfile_top(args)
-		} else {
-			return scanfile_no_flag(args)
 		}
+
+		if scanTopSize < 0 {
+			return fmt.Errorf("invalid --top value %d: must be a non-negative integer", scanTopSize)
+		}
+
+		if scanTopSize != 0 {
+			return scanfile_top(args)
+		}
+
+		return scanfile_no_flag(args)
 	},
 
 	Args: cobra.MaximumNArgs(1),
