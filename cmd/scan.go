@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,62 +15,9 @@ var (
 	scanTopSize   int64    // Search for the top N largest files
 )
 
-func scanfile_no_flag(args []string) error {
-	var (
-		fileNum int   // Total number of files
-		dirNum  int   // Total number of directories
-		sizeAll int64 // Total memory
-	)
-
-	nowPath := "."
-
-	if len(args) == 1 {
-		nowPath = args[0]
-	}
-
-	err := filepath.WalkDir(nowPath, func(_ string, d fs.DirEntry, err error) error {
-		// Path access failed
-		if err != nil {
-			return err
-		}
-
-		name := d.Name()
-		if name == ".git" {
-			return fs.SkipDir
-		}
-
-		if d.IsDir() {
-			dirNum++
-		} else {
-			fileNum++
-			fileInfo, err := d.Info()
-
-			// Failed to access file info
-			if err != nil {
-				return err
-			}
-
-			sizeAll = sizeAll + fileInfo.Size()
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("%-12s %d\n", "Files:", fileNum)
-	fmt.Printf("%-12s %d\n", "Directories:", dirNum)
-	fmt.Printf("%-12s %s\n", "Size:", fileSizeJudge(sizeAll))
-
-	return nil
-}
-
-func scanfile_ext(args []string) error {
-	var mpExt = make(map[string]int)
-
-	for _, ext := range scanExtFilter {
+func filterByExt(files []FileEntry, exts []string) ([]FileEntry, error) {
+	allowed := make(map[string]bool)
+	for _, ext := range exts {
 		if ext == "" {
 			continue
 		}
@@ -80,118 +26,88 @@ func scanfile_ext(args []string) error {
 			ext = "." + ext
 		}
 
-		mpExt[ext] = 0
+		allowed[ext] = true
 	}
 
-	if len(mpExt) == 0 {
-		return fmt.Errorf("no valid extension provided to --ext")
+	if len(allowed) == 0 {
+		return nil, fmt.Errorf("no valid extension provided to --ext")
 	}
 
-	nowPath := "."
-
-	if len(args) == 1 {
-		nowPath = args[0]
-	}
-
-	err := filepath.WalkDir(nowPath, func(_ string, d fs.DirEntry, err error) error {
-		// Path access failed
-		if err != nil {
-			return err
+	filtered := make([]FileEntry, 0, len(files))
+	for _, f := range files {
+		if allowed[filepath.Ext(f.Path)] {
+			filtered = append(filtered, f)
 		}
-
-		name := d.Name()
-		ext := filepath.Ext(name)
-
-		if name == ".git" {
-			return fs.SkipDir
-		}
-
-		if _, ok := mpExt[ext]; ok == false || d.IsDir() {
-			return nil
-		}
-
-		mpExt[ext]++
-
-		return nil
-	})
-
-	if err != nil {
-		return err
 	}
 
-	for ext, num := range mpExt {
-		ext = ext + ":"
-		fmt.Printf("%-10s%d\n", ext, num)
-	}
-
-	return nil
+	return filtered, nil
 }
 
-func scanfile_top(args []string) error {
-	nowPath := "."
-
-	if len(args) == 1 {
-		nowPath = args[0]
+func largestFiles(files []FileEntry, n int64) []FileEntry {
+	if int64(len(files)) < n {
+		n = int64(len(files))
 	}
 
-	mpSize := make(map[string]int64)
-
-	fileSlice := make([]string, 0)
-
-	err := filepath.WalkDir(nowPath, func(path string, d fs.DirEntry, err error) error {
-		// Path access failed
-		if err != nil {
-			return err
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].Size != files[j].Size {
+			return files[i].Size > files[j].Size
 		}
-
-		if d.Name() == ".git" {
-			return fs.SkipDir
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		fileinfo, err := d.Info()
-
-		if err != nil {
-			return err
-		}
-
-		mpSize[path] = fileinfo.Size()
-		fileSlice = append(fileSlice, path)
-		return nil
+		return files[i].Path < files[j].Path
 	})
 
-	if err != nil {
-		return err
+	return files[:n]
+}
+
+func printCounts(files []FileEntry, dirs int) {
+	var fileNum int
+	var sizeAll int64
+	for _, f := range files {
+		fileNum++
+		sizeAll += f.Size
 	}
 
-	scanTopSize = min(scanTopSize, int64(len(fileSlice)))
+	fmt.Printf("%-12s %d\n", "Files:", fileNum)
+	fmt.Printf("%-12s %d\n", "Directories:", dirs)
+	fmt.Printf("%-12s %s\n", "Size:", formatSize(sizeAll))
+}
 
-	sort.Slice(fileSlice, func(i, j int) bool {
-		if mpSize[fileSlice[i]] != mpSize[fileSlice[j]] {
-			return mpSize[fileSlice[i]] > mpSize[fileSlice[j]]
+func printExtCounts(files []FileEntry) {
+	counts := make(map[string]int)
+	for _, f := range files {
+		counts[filepath.Ext(f.Path)]++
+	}
+
+	exts := make([]string, 0, len(counts))
+	for ext := range counts {
+		exts = append(exts, ext)
+	}
+
+	sort.Slice(exts, func(i, j int) bool {
+		if counts[exts[i]] == counts[exts[j]] {
+			return exts[i] < exts[j]
 		}
-		return fileSlice[i] < fileSlice[j]
+		return counts[exts[i]] > counts[exts[j]]
 	})
 
+	for _, ext := range exts {
+		fmt.Printf("%-10s%d\n", ext+":", counts[ext])
+	}
+}
+
+func printTopFiles(files []FileEntry) {
 	var maxLen int
-
-	for i := 0; i < int(scanTopSize); i++ {
-		maxLen = max(maxLen, runewidth.StringWidth(fileSlice[i]))
+	for _, f := range files {
+		maxLen = max(maxLen, runewidth.StringWidth(f.Path))
 	}
 
-	fmt.Printf("The top %d largest files:\n", scanTopSize)
-	for i := 0; i < int(scanTopSize); i++ {
+	fmt.Printf("The top %d largest files:\n", len(files))
+	for i, f := range files {
 		fmt.Printf("%d. %s%s   %s\n",
 			i+1,
-			fileSlice[i],
-			strings.Repeat(" ", maxLen-runewidth.StringWidth(fileSlice[i])),
-			fileSizeJudge(mpSize[fileSlice[i]]))
+			f.Path,
+			strings.Repeat(" ", maxLen-runewidth.StringWidth(f.Path)),
+			formatSize(f.Size))
 	}
-
-	return nil
 }
 
 var scanCmd = &cobra.Command{
@@ -211,19 +127,39 @@ Examples:
   rovu scan D:\project\rovu`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(scanExtFilter) != 0 {
-			return scanfile_ext(args)
-		}
-
 		if scanTopSize < 0 {
 			return fmt.Errorf("invalid --top value %d: must be a non-negative integer", scanTopSize)
 		}
 
-		if scanTopSize != 0 {
-			return scanfile_top(args)
+		files, dirs, err := walkFiles(resolvePath(args))
+		if err != nil {
+			return err
 		}
 
-		return scanfile_no_flag(args)
+		useExt := len(scanExtFilter) != 0
+		useTop := scanTopSize != 0
+
+		if useExt {
+			files, err = filterByExt(files, scanExtFilter)
+			if err != nil {
+				return err
+			}
+		}
+
+		if useTop {
+			files = largestFiles(files, scanTopSize)
+		}
+
+		switch {
+		case useTop:
+			printTopFiles(files)
+		case useExt:
+			printExtCounts(files)
+		default:
+			printCounts(files, dirs)
+		}
+
+		return nil
 	},
 
 	Args: cobra.MaximumNArgs(1),

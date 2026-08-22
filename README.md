@@ -10,12 +10,13 @@ Rovu is a fast, lightweight command-line tool written in Go for analyzing local 
 - Count files, directories, and total size
 - Filter by file extension with `--ext`
 - Show the top N largest files with `--top`
+- Combine filters: `scan . --ext go --top 10` lists the 10 largest Go files
 - Report file counts grouped by language/extension
 - Simple, readable output with percentage bar charts
 
 ## Installation
 
-Requires [Go 1.21+](https://go.dev/dl/).
+Requires [Go 1.26+](https://go.dev/dl/).
 
 ```bash
 go install github.com/AbnerQi/rovu@latest
@@ -51,6 +52,12 @@ Show the top N largest files:
 rovu scan . --top 10
 ```
 
+Combine both filters — the 10 largest Go files:
+
+```bash
+rovu scan . --ext go --top 10
+```
+
 Show the language distribution of a repository:
 
 ```bash
@@ -65,40 +72,56 @@ If no path is given, the current directory (`.`) is scanned. The `.git` director
 ```
 $ rovu scan .
 
-Files:       11
+Files:       13
 Directories: 2
-Size:        19.80 KB
+Size:        24.44 KB
 
-$ rovu scan . --top 5
+$ rovu scan . --ext go --top 3
 
-The top 5 largest files:
-1. cmd\scan.go   3.90 KB
-2. cmd\public.go 2.07 KB
-3. README.md     2.05 KB
-4. cmd\stats.go  2.01 KB
+The top 3 largest files:
+1. cmd\scan.go         3.44 KB
+2. cmd\stats.go        1.72 KB
+3. cmd\extensions.go   1.45 KB
 
 $ rovu stats .
 
 File Extension Counts and Percentages (Ext | Num | Pcnt) :
-Go                   │ 5          │  62.500% ████████████
-Markdown             │ 2          │  25.000% █████
-Git                  │ 1          │  12.500% ██
+Go                   │ 7          │  70.000% ██████████████
+Markdown             │ 2          │  20.000% ████
+Git                  │ 1          │  10.000% ██
 ```
 
 ## Commands
 
-| Command                    | Description                                           |
-|----------------------------|-------------------------------------------------------|
-| `rovu scan [path]`           | Count files, directories, and total size recursively |
-| `rovu scan [path] --ext go,py` | Filter by file extension                            |
-| `rovu scan [path] --top 10`   | Show the top N largest files                         |
-| `rovu stats [path]`          | Count files by extension, with percentage and chart  |
+| Command                          | Description                                          |
+|----------------------------------|------------------------------------------------------|
+| `rovu scan [path]`               | Count files, directories, and total size recursively |
+| `rovu scan [path] --ext go,py`   | Filter by file extension                             |
+| `rovu scan [path] --top 10`      | Show the top N largest files                         |
+| `rovu scan [path] --ext go --top 10` | Top N largest files of a given extension         |
+| `rovu stats [path]`              | Count files by extension, with percentage and chart  |
+
+## Embed as a library
+
+`RovuCmd` is exported so other Cobra-based tools can embed rovu as a subcommand. For example, the `z` personal CLI toolkit wires it in:
+
+```go
+import rovucmd "github.com/AbnerQi/rovu/cmd"
+
+func init() {
+	rootCmd.AddCommand(rovucmd.RovuCmd)
+}
+```
+
+This gives `z rovu scan .` — the full rovu command tree under `z`, while `rovu` keeps working as a standalone binary.
 
 ## Roadmap
 
-- `rovu todo [path]` — find TODO/FIXME/HACK comments with file and line numbers
+- `rovu loc [path]` — count code/blank/comment lines by language
+- `rovu secret [path]` — scan for leaked API keys, passwords, and tokens
+- `rovu activity [path]` — show git commit and contributor activity
+- `rovu health [path]` — score a repository's health (README, tests, CI, large files)
 - `rovu duplicate [path]` — find files with duplicate content
-- `rovu scan . --json` — machine-readable output
 - `rovu version` — print the version
 
 ## License

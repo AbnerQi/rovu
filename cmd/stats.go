@@ -1,18 +1,13 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"path/filepath"
 	"sort"
 
 	"github.com/spf13/cobra"
 )
 
-// statusCmd represents the status command
 var statsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Show language distribution of mainstream programming languages",
@@ -29,69 +24,50 @@ Examples:
 
   rovu stats .
   rovu stats D:\project\bot`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		nowPath := "."
-
-		if len(args) == 1 {
-			nowPath = args[0]
-		}
-
-		extMp := make(map[string]int)
-
-		err := filepath.WalkDir(nowPath, func(path string, d fs.DirEntry, err error) error {
-			// Path access failed
-			if err != nil {
-				return err
-			}
-
-			if d.IsDir() {
-				return nil
-			}
-
-			name := d.Name()
-			ext := filepath.Ext(name)
-
-			if ext == "" || extDisplay[ext] == "" {
-				return nil
-			}
-
-			extMp[ext]++
-
-			return nil
-		})
-
-		// extMp save the number of each "ext"
+		files, _, err := walkFiles(resolvePath(args))
 		if err != nil {
 			return err
 		}
 
-		if len(extMp) == 0 {
-			println("No file with extension!")
+		extCounts := make(map[string]int)
+		for _, f := range files {
+			ext := filepath.Ext(f.Path)
+			if ext == "" || extDisplay[ext] == "" {
+				continue
+			}
+
+			extCounts[ext]++
+		}
+
+		if len(extCounts) == 0 {
+			fmt.Println("No file with extension!")
 			return nil
 		}
 
-		exts := make([]string, 0, len(extMp))
-		for ext := range extMp {
+		exts := make([]string, 0, len(extCounts))
+		for ext := range extCounts {
 			exts = append(exts, ext)
 		}
 
 		sort.Slice(exts, func(i, j int) bool {
-			if extMp[exts[i]] == extMp[exts[j]] {
+			if extCounts[exts[i]] == extCounts[exts[j]] {
 				return exts[i] < exts[j]
 			}
-			return extMp[exts[i]] > extMp[exts[j]]
+			return extCounts[exts[i]] > extCounts[exts[j]]
 		})
 
 		var total int
 		for _, ext := range exts {
-			total += extMp[ext]
+			total += extCounts[ext]
 		}
 
 		fmt.Println("File Extension Counts and Percentages (Ext | Num | Pcnt) :")
 		for _, ext := range exts {
-			pcnt := float64(extMp[ext]) / float64(total) * 100
-			bar := barChart(extMp[ext], total, 20)
-			fmt.Printf("%-20s │ %-10d │ %7.3f%% %s\n", extDisplay[ext], extMp[ext], pcnt, bar)
+			pcnt := float64(extCounts[ext]) / float64(total) * 100
+			bar := barChart(extCounts[ext], total, 20)
+			fmt.Printf("%-20s │ %-10d │ %7.3f%% %s\n", extDisplay[ext], extCounts[ext], pcnt, bar)
 		}
 
 		return nil

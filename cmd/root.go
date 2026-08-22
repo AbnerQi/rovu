@@ -14,11 +14,12 @@ var RovuCmd = &cobra.Command{
 	Long: `Rovu is a fast local repository analysis CLI.
 It scans a code repository and reports useful statistics such as
 file counts, directory counts, total size, language distribution,
-large files, TODO/FIXME comments, and duplicate files.
+and the largest files.
 
 Examples:
 
-  rovu scan .`,
+  rovu scan .
+  rovu stats .`,
 }
 
 func Execute() {
@@ -26,7 +27,4 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
-}
-
-func init() {
 }
