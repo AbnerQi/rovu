@@ -117,7 +117,7 @@ This gives `z rovu scan .` — the full rovu command tree under `z`, while `rovu
 
 ## Roadmap
 
-- `rovu loc [path]` — count code/blank/comment lines by language
+- `rovu lines [path]` — count code/blank/comment lines by language
 - `rovu secret [path]` — scan for leaked API keys, passwords, and tokens
 - `rovu activity [path]` — show git commit and contributor activity
 - `rovu health [path]` — score a repository's health (README, tests, CI, large files)
